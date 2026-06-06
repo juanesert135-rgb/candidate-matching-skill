@@ -1,8 +1,8 @@
 Video:
-[PASTE YOUR LOOM URL]
+https://www.loom.com/share/14286f94495044a6b97a4a42d7a13524
 
 GitHub Repository:
-[PASTE YOUR GITHUB URL]
+https://github.com/juanesert135-rgb/candidate-matching-skill.git
 
 Notion Report:
 https://app.notion.com/p/Recruitment-Evaluation-Workspace-3775e86d003a80a589d3e59855a2d69a?source=copy_link
