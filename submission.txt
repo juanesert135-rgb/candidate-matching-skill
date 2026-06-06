@@ -1,0 +1,19 @@
+Video:
+[PASTE YOUR LOOM URL]
+
+GitHub Repository:
+[PASTE YOUR GITHUB URL]
+
+Notion Report:
+https://app.notion.com/p/Recruitment-Evaluation-Workspace-3775e86d003a80a589d3e59855a2d69a?source=copy_link
+
+Time Invested:
+2:30
+
+Notes:
+
+The workflow was implemented using n8n, OpenAI, and Notion.
+
+The solution extracts structured information from resumes, evaluates candidates against multiple job descriptions, ranks candidates, and automatically stores results in Notion.
+
+The workflow was designed to be reusable and easily adaptable to future hiring processes.
