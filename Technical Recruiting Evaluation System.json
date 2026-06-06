@@ -1,0 +1,808 @@
+{
+  "name": "Technical Recruiting Evaluation System",
+  "nodes": [
+    {
+      "parameters": {},
+      "id": "1e74c936-5668-48b3-b21d-0933a62cc70c",
+      "name": "Start Workflow",
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        240,
+        560
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "pdf",
+        "options": {}
+      },
+      "id": "b62c3ddc-c66e-45f6-a8f2-9009cfcdddba",
+      "name": "Extract Job A Text",
+      "type": "n8n-nodes-base.extractFromFile",
+      "typeVersion": 1.1,
+      "position": [
+        688,
+        480
+      ]
+    },
+    {
+      "parameters": {
+        "mode": "combine",
+        "fieldsToMatchString": "text",
+        "joinMode": "keepEverything",
+        "options": {}
+      },
+      "id": "2fda2555-1cc4-4caf-a0ee-0336767fa81e",
+      "name": "Combine Job Descriptions",
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3.2,
+      "position": [
+        912,
+        560
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "pdf",
+        "options": {}
+      },
+      "id": "2dc8e02c-0c49-4e4d-b579-2fedb53253a0",
+      "name": "Extract Job B Text",
+      "type": "n8n-nodes-base.extractFromFile",
+      "typeVersion": 1.1,
+      "position": [
+        688,
+        672
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "pdf",
+        "options": {}
+      },
+      "id": "eb5cb847-290d-4d12-b3ca-5d5527e524a3",
+      "name": "Extract Resume Text",
+      "type": "n8n-nodes-base.extractFromFile",
+      "typeVersion": 1.1,
+      "position": [
+        1584,
+        560
+      ]
+    },
+    {
+      "parameters": {
+        "aggregate": "aggregateAllItemData",
+        "destinationFieldName": "candidates",
+        "options": {}
+      },
+      "id": "bd53b7aa-1d29-41ba-a8de-07ce36950d75",
+      "name": "Collect All Candidates",
+      "type": "n8n-nodes-base.aggregate",
+      "typeVersion": 1,
+      "position": [
+        2096,
+        656
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const candidates = $input.first().json.candidates;\n\nconst sorted = candidates.sort((a, b) => b.max_score - a.max_score);\n\nreturn sorted.map(candidate => ({ json: candidate }));"
+      },
+      "id": "32eac7b8-45b5-4fc6-a323-6d3d697e88bf",
+      "name": "Sort by Max Score",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2448,
+        656
+      ]
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=You are an expert resume parser.\n\nAnalyze the following resume and extract structured information.\n\nResume:\n\n{{ $json.text }}\n\nRules:\n\n- Return ONLY valid JSON.\n- Do not include markdown.\n- Do not include explanations.\n- Do not infer information that is not explicitly present in the resume.\n- Extract languages separately from skills.\n- Do NOT include languages inside the skills array.\n- Estimate years_experience based on the candidate's work history.\n- Extract only relevant professional, technical, ERP, consulting, management, business, and software skills explicitly mentioned.\n\nEnglish Level Rules:\n- Native\n- Fluent\n- Professional\n- Advanced\n- Intermediate\n- Basic\n- Mentioned\n- Not Specified\n\nIf English appears in the Languages section, classify it using the closest available level.\n\nReturn this exact schema:\n\n{\n  \"candidate_name\": \"\",\n  \"years_experience\": 0,\n  \"english_level\": \"\",\n  \"other_languages\": [],\n  \"skills\": [],\n  \"education\": \"\",\n  \"previous_roles\": []\n}",
+        "hasOutputParser": true,
+        "options": {
+          "systemMessage": "You are a resume parsing expert. Extract structured data accurately from resumes. Focus on quantifiable experience, technical skills, and relevant qualifications."
+        }
+      },
+      "id": "1dd0cb31-2317-47e6-ab1f-a475afe42d17",
+      "name": "Parse Resume Data",
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 3.1,
+      "position": [
+        2032,
+        256
+      ]
+    },
+    {
+      "parameters": {
+        "model": {
+          "__rl": true,
+          "mode": "list",
+          "value": "gpt-5-mini"
+        },
+        "builtInTools": {},
+        "options": {}
+      },
+      "id": "aa84a921-e751-414d-b99b-7fb304917928",
+      "name": "OpenAI GPT-5 Model",
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+      "typeVersion": 1.3,
+      "position": [
+        2048,
+        480
+      ],
+      "credentials": {
+        "openAiApi": {
+          "id": "OhsCRzxWTbiRHaBS",
+          "name": "n8n free OpenAI API credits"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsonSchemaExample": "{\n  \"candidate_name\": \"John Doe\",\n  \"years_experience\": 7,\n  \"skills\": [\n    \"Python\",\n    \"AWS\",\n    \"Docker\"\n  ],\n  \"education\": \"BS Computer Science\",\n  \"previous_roles\": [\n    \"Senior Developer\",\n    \"Software Engineer\"\n  ]\n}"
+      },
+      "id": "1589e4fd-e6ca-46df-a320-555629f20170",
+      "name": "Resume Parser Schema",
+      "type": "@n8n/n8n-nodes-langchain.outputParserStructured",
+      "typeVersion": 1.3,
+      "position": [
+        2176,
+        480
+      ]
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=You are a Senior Technical Recruiter specializing in ERP, Oracle, Integration, and Business Analysis roles.\n\nEvaluate the candidate against both job descriptions.\n\nCandidate Profile:\n{{ JSON.stringify($json) }}\n\nJob A:\n{{ $(\"Aggregate\").item.json.text[0] }}\n\nJob B:\n{{ $(\"Aggregate\").item.json.text[1] }}\n\nInstructions:\n\n1. Evaluate the candidate's fit for Job A and Job B using ONLY the structured candidate profile provided.\n2. Assign a score from 0 to 100 for each position.\n3. Consider:\n   - Years of experience\n   - Skills\n   - Previous roles\n   - Education\n   - English level\n4. Identify the strongest qualifications supporting the candidate.\n5. Identify missing requirements, skill gaps, or potential concerns.\n6. Recommend the most suitable position.\n7. Assign a contact priority.\n\nScoring Guidelines:\n- 90-100 = Exceptional match\n- 80-89 = Strong match\n- 70-79 = Good match\n- 60-69 = Partial match\n- Below 60 = Weak match\n\nRecommendation Rules:\n- If Job A score exceeds Job B by 10 or more points → Job A\n- If Job B score exceeds Job A by 10 or more points → Job B\n- If both scores are above 80 and differ by less than 10 points → Both\n- If both scores are below 60 → Neither\n\nContact Priority:\n- High = Highest score >= 85\n- Medium = Highest score between 70 and 84\n- Low = Highest score below 70\n\nImportant Rules:\n\n- Use the candidate's english_level from the structured profile.\n- Do NOT extract additional skills.\n- Do NOT invent experience, certifications, technologies, or language proficiency.\n- Base all conclusions only on the provided candidate profile and job descriptions.\n- Strengths and risks must be concise and evidence-based.\n\nReturn ONLY valid JSON.\n\n{\n  \"candidate_name\": \"\",\n  \"job_a_score\": 0,\n  \"job_b_score\": 0,\n  \"recommended_position\": \"\",\n  \"contact_priority\": \"\",\n  \"job_a_match_reasons\": [],\n  \"job_b_match_reasons\": [],\n  \"strengths\": [],\n  \"risks\": [],\n  \"summary\": \"\"\n}\n\nRequirements:\n\n- job_a_match_reasons: 2-5 reasons supporting the Job A score.\n- job_b_match_reasons: 2-5 reasons supporting the Job B score.\n- strengths: 3-8 concise strengths.\n- risks: 1-5 concise concerns or missing qualifications.\n- summary: 2-4 sentences explaining the recommendation.\n- Return ONLY valid JSON.",
+        "hasOutputParser": true,
+        "options": {
+          "systemMessage": "You are an expert technical recruiter. Score candidates objectively based on:\n1. Years of experience match\n2. Technical skills alignment\n3. Domain expertise relevance\n4. Education and certifications\n\nScore 0-100 where:\n90-100: Exceptional fit\n75-89: Strong fit\n60-74: Good fit\n40-59: Moderate fit\n0-39: Poor fit\n\nRecommend \"Both\" only if both scores are 75+. Recommend \"Neither\" if both scores are below 60."
+        }
+      },
+      "id": "d280b46b-b547-4b1c-9420-c2d494633fa2",
+      "name": "Score Against Jobs",
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 3.1,
+      "position": [
+        2384,
+        256
+      ]
+    },
+    {
+      "parameters": {
+        "model": {
+          "__rl": true,
+          "mode": "list",
+          "value": "gpt-5-mini"
+        },
+        "builtInTools": {},
+        "options": {}
+      },
+      "id": "25c92fae-afac-4c26-b2d3-7a97095316cd",
+      "name": "Scoring Model",
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+      "typeVersion": 1.3,
+      "position": [
+        2400,
+        480
+      ],
+      "credentials": {
+        "openAiApi": {
+          "id": "OhsCRzxWTbiRHaBS",
+          "name": "n8n free OpenAI API credits"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsonSchemaExample": "{\n  \"job_a_score\": \"number\",\n  \"job_b_score\": \"number\",\n  \"recommended_position\": \"string\",\n  \"strengths\": [\"string\"],\n  \"risks\": [\"string\"],\n  \"summary\": \"string\"\n}"
+      },
+      "id": "bd53cedf-6f59-4a0f-abda-430758297bbb",
+      "name": "Scoring Schema",
+      "type": "@n8n/n8n-nodes-langchain.outputParserStructured",
+      "typeVersion": 1.3,
+      "position": [
+        2528,
+        480
+      ]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "1",
+              "name": "candidate_name",
+              "value": "={{ $(\"Parse Resume Data\").item.json.output.candidate_name }}",
+              "type": "string"
+            },
+            {
+              "id": "2",
+              "name": "job_a_score",
+              "value": "={{ $json.output.job_a_score }}",
+              "type": "number"
+            },
+            {
+              "id": "3",
+              "name": "job_b_score",
+              "value": "={{ $json.output.job_b_score }}",
+              "type": "number"
+            },
+            {
+              "id": "4",
+              "name": "recommended_position",
+              "value": "={{ $json.output.recommended_position }}",
+              "type": "string"
+            },
+            {
+              "id": "5",
+              "name": "contact_priority",
+              "value": "={{ $json.output.job_a_score >= 75 || $json.output.job_b_score >= 75 ? \"High\" : ($json.output.job_a_score >= 60 || $json.output.job_b_score >= 60 ? \"Medium\" : \"Low\") }}",
+              "type": "string"
+            },
+            {
+              "id": "6",
+              "name": "strengths",
+              "value": "={{ $json.output.strengths }}",
+              "type": "array"
+            },
+            {
+              "id": "7",
+              "name": "risks",
+              "value": "={{ $json.output.risks }}",
+              "type": "array"
+            },
+            {
+              "id": "8",
+              "name": "summary",
+              "value": "={{ $json.output.summary }}",
+              "type": "string"
+            },
+            {
+              "id": "9",
+              "name": "max_score",
+              "value": "={{ Math.max($json.output.job_a_score, $json.output.job_b_score) }}",
+              "type": "number"
+            },
+            {
+              "id": "2f9734cf-b9d9-40fe-b8e1-c95670021d7c",
+              "name": "years_experience",
+              "value": "={{ $('Parse Resume Data').item.json.output.years_experience }}",
+              "type": "number"
+            },
+            {
+              "id": "fe7480d6-1247-4d65-b9c5-4c9870af61d5",
+              "name": "previous_roles",
+              "value": "={{ $('Parse Resume Data').item.json.output.previous_roles }}",
+              "type": "array"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "7e3efb62-34af-469a-80b4-75c5e0c69f67",
+      "name": "Format Candidate Results",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        2736,
+        368
+      ]
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "id": "832f5cf2-c03a-4fee-a1c4-0cc2ede15a69",
+      "name": "Process Each Resume",
+      "type": "n8n-nodes-base.splitInBatches",
+      "typeVersion": 3,
+      "position": [
+        1808,
+        560
+      ]
+    },
+    {
+      "parameters": {
+        "content": "## Stage 1: Input\nLoad job descriptions and candidate resumes",
+        "height": 128,
+        "width": 188,
+        "color": 2
+      },
+      "id": "dbfa3502-80f9-49d1-8720-bd53c2a7e046",
+      "name": "Sticky Note 05912dca",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        432,
+        320
+      ]
+    },
+    {
+      "parameters": {
+        "content": "## Stage 2: Extract Text\nConvert files to text format",
+        "height": 112,
+        "width": 204,
+        "color": 3
+      },
+      "id": "38a57afc-c25e-4815-87ba-c353f2f556de",
+      "name": "Sticky Note 952857b6",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        656,
+        320
+      ]
+    },
+    {
+      "parameters": {
+        "content": "## Stage 3: Resume Parsing\nExtract structured candidate data using AI",
+        "height": 136,
+        "width": 252,
+        "color": 4
+      },
+      "id": "9cfde537-7673-477b-9b14-b647a0ae400a",
+      "name": "Sticky Note e8c61ce1",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        2016,
+        48
+      ]
+    },
+    {
+      "parameters": {
+        "content": "## Stage 4: Candidate Scoring\nScore candidates against both jobs",
+        "height": 120,
+        "width": 284,
+        "color": 5
+      },
+      "id": "4065bdd1-5082-4d52-9fa0-e5b286313e87",
+      "name": "Sticky Note b891c34e",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        2368,
+        48
+      ]
+    },
+    {
+      "parameters": {
+        "content": "## Stage 5: Reporting\nRank and publish to Notion",
+        "height": 80,
+        "width": 244,
+        "color": 6
+      },
+      "id": "f615cc1c-f864-45b5-b93b-f681a62258f1",
+      "name": "Sticky Note fb7e84ef",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        2384,
+        832
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "download",
+        "fileId": {
+          "__rl": true,
+          "value": "1T-EDiWpcy2xQKRNyqk3skN6KPDtr2MyB",
+          "mode": "list",
+          "cachedResultName": "candidate-01.pdf",
+          "cachedResultUrl": "https://drive.google.com/file/d/1T-EDiWpcy2xQKRNyqk3skN6KPDtr2MyB/view?usp=drivesdk"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleDrive",
+      "typeVersion": 3,
+      "position": [
+        1360,
+        560
+      ],
+      "id": "5e671895-6fde-4a7a-9bd8-ad28aa4fe9da",
+      "name": "Download file",
+      "credentials": {
+        "googleDriveOAuth2Api": {
+          "id": "OloCJ6bAVdpRVKxF",
+          "name": "Google Drive OAuth2 API"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "download",
+        "fileId": {
+          "__rl": true,
+          "value": "1mzVuxdNCbI95NumFyVR-M8wdqIqTGXWp",
+          "mode": "list",
+          "cachedResultName": "job-a-integration-developer-oracle-ebs.pdf",
+          "cachedResultUrl": "https://drive.google.com/file/d/1mzVuxdNCbI95NumFyVR-M8wdqIqTGXWp/view?usp=drivesdk"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleDrive",
+      "typeVersion": 3,
+      "position": [
+        464,
+        672
+      ],
+      "id": "8d1c6823-1c61-4e86-8220-da73b8d272a7",
+      "name": "Download file1",
+      "credentials": {
+        "googleDriveOAuth2Api": {
+          "id": "OloCJ6bAVdpRVKxF",
+          "name": "Google Drive OAuth2 API"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "download",
+        "fileId": {
+          "__rl": true,
+          "value": "1RNSk_vZ379Y5nZJC9zF7PPaBykNzlj-3",
+          "mode": "list",
+          "cachedResultName": "job-b-business-systems-analyst-oracle-ebs.pdf",
+          "cachedResultUrl": "https://drive.google.com/file/d/1RNSk_vZ379Y5nZJC9zF7PPaBykNzlj-3/view?usp=drivesdk"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleDrive",
+      "typeVersion": 3,
+      "position": [
+        464,
+        480
+      ],
+      "id": "aa020534-c4ca-4f3d-a87b-258970005824",
+      "name": "Download file2",
+      "credentials": {
+        "googleDriveOAuth2Api": {
+          "id": "OloCJ6bAVdpRVKxF",
+          "name": "Google Drive OAuth2 API"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "fieldsToAggregate": {
+          "fieldToAggregate": [
+            {
+              "fieldToAggregate": "text"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.aggregate",
+      "typeVersion": 1,
+      "position": [
+        1136,
+        560
+      ],
+      "id": "6a89ea0d-7582-400f-85cf-1fb9828bbd1c",
+      "name": "Aggregate"
+    },
+    {
+      "parameters": {
+        "resource": "databasePage",
+        "databaseId": {
+          "__rl": true,
+          "value": "b9b12002-6422-439a-ad9a-a7b94c2568bd",
+          "mode": "list",
+          "cachedResultName": "Candidate Evaluation",
+          "cachedResultUrl": "https://app.notion.com/p/b9b120026422439aad9aa7b94c2568bd"
+        },
+        "propertiesUi": {
+          "propertyValues": [
+            {
+              "key": "Candidate Name|title",
+              "title": "={{ $json.candidate_name }}"
+            },
+            {
+              "key": "AI Summary|rich_text",
+              "textContent": "={{ $json.summary }}"
+            },
+            {
+              "key": "Contact Priority|select",
+              "selectValue": "={{ $json.contact_priority }}"
+            },
+            {
+              "key": "Job A Score|number",
+              "numberValue": "={{ $json.job_a_score }}"
+            },
+            {
+              "key": "Job B Score|number",
+              "numberValue": "={{ $json.job_b_score }}"
+            },
+            {
+              "key": "Recommended Position|select",
+              "selectValue": "={{ $json.recommended_position }}"
+            },
+            {
+              "key": "Risks|rich_text",
+              "textContent": "={{ $json.risks.join('\\n') }}"
+            },
+            {
+              "key": "Strengths|rich_text",
+              "textContent": "={{ $json.strengths.join('\\n') }}"
+            },
+            {
+              "key": "Evaluation Date|date",
+              "includeTime": false,
+              "date": "={{ $today }}",
+              "timezone": "America/Bogota"
+            },
+            {
+              "key": "Years of Experience|number",
+              "numberValue": "={{ $('Parse Resume Data').item.json.output.years_experience }}"
+            },
+            {
+              "key": "English Level|select"
+            },
+            {
+              "key": "Previous Roles|rich_text",
+              "textContent": "={{ $('Format Candidate Results').item.json.previous_roles.join('\\n') }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "ec420bf0-b500-42c6-863c-8ea3916f4468",
+      "name": "Update candidate database",
+      "type": "n8n-nodes-base.notion",
+      "typeVersion": 2.2,
+      "position": [
+        2736,
+        656
+      ],
+      "credentials": {
+        "notionApi": {
+          "id": "5ACKEvOMr0EFwkRr",
+          "name": "Notion account"
+        }
+      }
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Start Workflow": {
+      "main": [
+        [
+          {
+            "node": "Download file1",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Download file2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extract Job A Text": {
+      "main": [
+        [
+          {
+            "node": "Combine Job Descriptions",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Combine Job Descriptions": {
+      "main": [
+        [
+          {
+            "node": "Aggregate",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extract Job B Text": {
+      "main": [
+        [
+          {
+            "node": "Combine Job Descriptions",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "Extract Resume Text": {
+      "main": [
+        [
+          {
+            "node": "Process Each Resume",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Collect All Candidates": {
+      "main": [
+        [
+          {
+            "node": "Sort by Max Score",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Sort by Max Score": {
+      "main": [
+        [
+          {
+            "node": "Update candidate database",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parse Resume Data": {
+      "main": [
+        [
+          {
+            "node": "Score Against Jobs",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OpenAI GPT-5 Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Parse Resume Data",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Resume Parser Schema": {
+      "ai_outputParser": [
+        [
+          {
+            "node": "Parse Resume Data",
+            "type": "ai_outputParser",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Score Against Jobs": {
+      "main": [
+        [
+          {
+            "node": "Format Candidate Results",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Scoring Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Score Against Jobs",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Scoring Schema": {
+      "ai_outputParser": [
+        [
+          {
+            "node": "Score Against Jobs",
+            "type": "ai_outputParser",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Format Candidate Results": {
+      "main": [
+        [
+          {
+            "node": "Process Each Resume",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Process Each Resume": {
+      "main": [
+        [
+          {
+            "node": "Collect All Candidates",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Parse Resume Data",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Download file": {
+      "main": [
+        [
+          {
+            "node": "Extract Resume Text",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Download file1": {
+      "main": [
+        [
+          {
+            "node": "Extract Job B Text",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Download file2": {
+      "main": [
+        [
+          {
+            "node": "Extract Job A Text",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Aggregate": {
+      "main": [
+        [
+          {
+            "node": "Download file",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate"
+  },
+  "versionId": "089b5f27-c27e-4b76-a0aa-5a9be3512559",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "61c8e25ea5aae43adcac1612a4735ddfac52392489b02bb5d6bf383421937ca5"
+  },
+  "nodeGroups": [],
+  "id": "72zLr1bngYLlu90Q",
+  "tags": []
+}
